@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      /* Motion de sobreposição: fundo verde puro para chroma key. */
+      :root {
+        --ground: #00ff00;
+        --ink: #ffffff;
+        --accent: #111111;
+        --font-display: "DejaVu Sans", "Helvetica Neue", Arial, sans-serif;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--ground);
+      }
+      #root {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 36px;
+        font-family: var(--font-display);
+      }
+      #scene {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 36px;
+      }
+      #card {
+        background: var(--accent);
+        padding: 48px 72px;
+        border-radius: 28px;
+      }
+      #title {
+        color: var(--ink);
+        font-size: 140px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1;
+      }
+      #bar {
+        width: 520px;
+        height: 18px;
+        background: var(--ink);
+        border-radius: 9px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="3"
+      data-width="1080"
+      data-height="1920"
+    >
+      <div id="scene" class="clip" data-start="0" data-duration="3" data-track-index="0">
+        <div id="card"><h1 id="title">TESTE</h1></div>
+        <div id="bar"></div>
+      </div>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#card", { y: 120, scale: 0.7, opacity: 1 }, { y: 0, scale: 1, opacity: 1, duration: 0.6, ease: "back.out(1.7)" }, 0);
+      tl.fromTo("#title", { scale: 0.6 }, { scale: 1, duration: 0.8, ease: "power3.out" }, 0.1);
+      tl.fromTo("#bar", { scaleX: 0 }, { scaleX: 1, duration: 0.7, ease: "power2.out" }, 0.5);
+      tl.to("#card", { scale: 1.05, duration: 1.2, ease: "sine.inOut" }, 1.2);
+      tl.to(["#card", "#bar"], { scale: 0, duration: 0.35, ease: "back.in(1.7)" }, 2.6);
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
