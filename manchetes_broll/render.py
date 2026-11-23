@@ -113,7 +113,8 @@ def encoder(cmd_out):
 def render_clip(card0, idx, out_base):
     """Gera duas versões da manchete:
     - <out_base>_chroma.mp4: fundo verde (chroma key), sem sombra
-    - <out_base>_transparente.mov: ProRes 4444 com canal alfa e sombra suave
+    - <out_base>_transparente.mov: ProRes 4444 com canal alfa e sombra suave (pesado)
+    - <out_base>_transparente.webm: VP9 com canal alfa, mesma imagem, arquivo leve
     """
     # recorta o quadro só em volta da manchete (com folga para movimento e sombra)
     base = min(1560 / card0.width, 880 / card0.height) * 1.035
@@ -130,6 +131,9 @@ def render_clip(card0, idx, out_base):
                         "-pix_fmt", "yuv420p", "-movflags", "+faststart", f"{out_base}_chroma.mp4"])
     ff_alpha = encoder(["-vf", crop, "-c:v", "prores_ks", "-profile:v", "4444",
                         "-pix_fmt", "yuva444p10le", "-qscale:v", "12", "-alpha_bits", "8", "-vendor", "apl0", f"{out_base}_transparente.mov"])
+    ff_webm = encoder(["-vf", crop, "-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-crf", "20",
+                       "-b:v", "0", "-row-mt", "1", "-deadline", "good", "-cpu-used", "3",
+                       "-auto-alt-ref", "0", f"{out_base}_transparente.webm"])
     green_bg = Image.new("RGBA", (W, H), GREEN + (255,))
 
     for f in range(int(SEG * FPS)):
@@ -168,13 +172,14 @@ def render_clip(card0, idx, out_base):
         sh_layer = sh_layer.crop((pad, pad, pad + W, pad + H))
         sh_layer.alpha_composite(layer)
         ff_alpha.stdin.write(sh_layer.tobytes())
+        ff_webm.stdin.write(sh_layer.tobytes())
 
         # versão chroma key: manchete sobre verde puro, sem sombra
         g = green_bg.copy()
         g.alpha_composite(layer)
         ff_green.stdin.write(g.tobytes())
 
-    for ff in (ff_green, ff_alpha):
+    for ff in (ff_green, ff_alpha, ff_webm):
         ff.stdin.close()
         ff.wait()
 
