@@ -1,7 +1,8 @@
 """B-roll: 3 manchetes entrando suavemente com efeito marca-texto.
 
-Uso: python3 render.py <img1> <img2> <img3> <saida.mp4>
-Gera 1920x1080, 30 fps, 15 s (5 s por manchete).
+Uso: python3 render.py <img1> <img2> <img3> <pasta_saida>
+Gera um vídeo separado por manchete (manchete1.mp4, manchete2.mp4, manchete3.mp4),
+cada um com 1920x1080, 30 fps e 5 s.
 """
 import subprocess
 import sys
@@ -100,9 +101,13 @@ def rounded_alpha(w, h, r=18):
 
 def main():
     imgs = [Image.open(p).convert("RGB") for p in sys.argv[1:4]]
-    out = sys.argv[4]
+    out_dir = sys.argv[4]
     bg = Image.fromarray(background())
+    for idx in range(3):
+        render_clip(imgs[idx], idx, bg, f"{out_dir}/manchete{idx + 1}.mp4")
 
+
+def render_clip(card0, idx, bg, out):
     ff = subprocess.Popen(
         ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
          "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
@@ -111,12 +116,8 @@ def main():
         stdin=subprocess.PIPE,
     )
 
-    total_frames = int(SEG * 3 * FPS)
-    for f in range(total_frames):
-        t = f / FPS
-        idx = min(int(t // SEG), 2)
-        tr = t - idx * SEG
-        card0 = imgs[idx]
+    for f in range(int(SEG * FPS)):
+        tr = f / FPS
         card = highlighted_card(card0, LINES[idx], tr, idx)
 
         # escala base para caber no quadro + zoom lento
