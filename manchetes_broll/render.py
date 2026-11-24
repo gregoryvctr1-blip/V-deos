@@ -1,12 +1,13 @@
-"""B-roll: 3 manchetes entrando suavemente com efeito marca-texto.
+"""B-roll: manchetes entrando suavemente com efeito marca-texto.
 
-Uso: python3 render.py <img1> <img2> <img3> <pasta_saida>
-Gera um vídeo separado por manchete (manchete1, manchete2, manchete3),
+Uso: python3 render.py <pasta_saida> imagens/manchete1.jpg [imagens/manchete2.jpg ...]
+Gera um vídeo separado para cada imagem informada (com o mesmo nome do arquivo),
 cada um recortado em volta da manchete, 30 fps e 15 s, em duas versões: fundo verde (chroma key)
 e transparente (ProRes 4444 com alfa).
 """
 import subprocess
 import sys
+from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
@@ -17,12 +18,14 @@ HL_COLOR = np.array([255, 222, 60], dtype=np.float32) / 255.0  # amarelo marca-t
 
 # Linhas a destacar em cada imagem: (x0, x1, baseline, altura_maiuscula)
 # Medidas em pixels da imagem original.
-LINES = [
-    [(53, 625, 170, 66), (49, 984, 285, 66), (51, 1069, 400, 66)],
-    [(52, 1233, 185, 66), (50, 1189, 300, 66), (50, 1018, 414, 66)],
+LINES = {
+    "manchete1": [(53, 625, 170, 66), (49, 984, 285, 66), (51, 1069, 400, 66)],
+    "manchete2": [(52, 1233, 185, 66), (50, 1189, 300, 66), (50, 1018, 414, 66)],
     # Apenas "Flávio Dino ... contra delegado da PF" (termina antes do ";")
-    [(52, 1258, 270, 50), (46, 1222, 367, 50), (47, 1236, 464, 50), (50, 1075, 561, 50)],
-]
+    "manchete3": [(52, 1258, 270, 50), (46, 1222, 367, 50), (47, 1236, 464, 50), (50, 1075, 561, 50)],
+    # Portal R10: "SUS pode perder R$ 10 bilhões por ano com ajuste fiscal do governo Lula"
+    "manchete4": [(39, 1188, 227, 50), (39, 1024, 306, 50)],
+}
 
 
 def ease_out_cubic(t):
@@ -96,10 +99,10 @@ GREEN = (0, 255, 0)
 
 
 def main():
-    imgs = [Image.open(p).convert("RGB") for p in sys.argv[1:4]]
-    out_dir = sys.argv[4]
-    for idx in range(3):
-        render_clip(imgs[idx], idx, f"{out_dir}/manchete{idx + 1}")
+    out_dir = sys.argv[1]
+    for path in sys.argv[2:]:
+        name = Path(path).stem
+        render_clip(Image.open(path).convert("RGB"), name, f"{out_dir}/{name}")
 
 
 def encoder(cmd_out):
@@ -110,7 +113,7 @@ def encoder(cmd_out):
     )
 
 
-def render_clip(card0, idx, out_base):
+def render_clip(card0, name, out_base):
     """Gera duas versões da manchete:
     - <out_base>_chroma.mp4: fundo verde (chroma key), sem sombra
     - <out_base>_transparente.mov: ProRes 4444 com canal alfa e sombra suave (pesado)
@@ -138,7 +141,7 @@ def render_clip(card0, idx, out_base):
 
     for f in range(int(SEG * FPS)):
         tr = f / FPS
-        card = highlighted_card(card0, LINES[idx], tr, idx)
+        card = highlighted_card(card0, LINES[name], tr, sorted(LINES).index(name))
 
         # escala base para caber no quadro + zoom lento
         base = min(1560 / card.width, 880 / card.height)
