@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; background: #00ff00; }
+  #stage { position: relative; width: 1080px; height: 1080px; overflow: hidden; font-family: "Inter", sans-serif; }
+  #card {
+    position: absolute; left: 60px; top: 110px; width: 960px; box-sizing: border-box;
+    padding: 46px 60px 52px; background: #fff; border-radius: 28px; transform-origin: 50% 50%;
+  }
+  .tag {
+    display: inline-block; background: #1b2a4a; color: #fff; font-weight: 800; font-size: 24px;
+    letter-spacing: 3px; padding: 9px 18px; border-radius: 10px;
+  }
+  h1 { margin: 22px 0 4px; font-size: 50px; line-height: 1.08; font-weight: 800; color: #111827; }
+  .sub { font-size: 28px; color: #6b7280; font-weight: 600; }
+  .block { margin-top: 34px; }
+  .label { font-size: 22px; font-weight: 800; letter-spacing: 2px; color: #2f6fe4; text-transform: uppercase; }
+  .label.red { color: #d93a3a; }
+  .txt { margin-top: 6px; font-size: 34px; line-height: 1.25; font-weight: 600; color: #1f2937; }
+  mark { background: linear-gradient(transparent 12%, #ffd84d 12%, #ffd84d 92%, transparent 92%);
+         background-size: 0% 100%; background-repeat: no-repeat; color: inherit; padding: 0 2px; margin: 0 -2px; }
+  #barwrap { position: relative; margin-top: 30px; height: 150px; }
+  #bar { position: absolute; left: 0; top: 40px; height: 74px; width: 840px; display: flex; border-radius: 12px; overflow: visible; }
+  #health { background: #2f6fe4; height: 100%; border-radius: 12px 0 0 12px; position: relative; }
+  #rest { background: #1b2a4a; height: 100%; flex: 1; }
+  #oil {
+    position: absolute; top: 40px; height: 74px; border-radius: 0 12px 12px 0;
+    background: repeating-linear-gradient(-45deg, #e04646 0 14px, #c73232 14px 28px);
+  }
+  .barlbl { position: absolute; top: 0; font-size: 24px; font-weight: 800; white-space: nowrap; }
+  #lblHealth { color: #2f6fe4; }
+  #lblRcl { color: #1b2a4a; }
+  #lblOil { color: #d93a3a; }
+  #inbar { position: absolute; top: 40px; height: 74px; display: flex; align-items: center;
+           color: #fff; font-weight: 800; font-size: 30px; padding-left: 16px; }
+  #result {
+    margin-top: 26px; display: inline-flex; align-items: center; gap: 14px;
+    background: #fff1f1; border: 3px solid #e04646; color: #b42323; border-radius: 14px;
+    padding: 14px 22px; font-size: 32px; font-weight: 800;
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="card">
+    <span class="tag">PISO DA SAÚDE</span>
+    <h1>Receita Corrente Líquida</h1>
+    <div class="sub">(RCL)</div>
+
+    <div class="block" id="b1">
+      <div class="label">Constituição</div>
+      <div class="txt">A União deve aplicar <mark id="m1">no mínimo 15% da RCL</mark> em saúde</div>
+    </div>
+
+    <div id="barwrap">
+      <div class="barlbl" id="lblHealth">15% → saúde</div>
+      <div class="barlbl" id="lblRcl">RCL</div>
+      <div class="barlbl" id="lblOil">Petróleo e gás</div>
+      <div id="bar"><div id="health"></div><div id="rest"></div></div>
+      <div id="oil"></div>
+    </div>
+
+    <div class="block" id="b2">
+      <div class="label red">Proposta</div>
+      <div class="txt">Receitas de petróleo e gás <mark id="m2">fora do cálculo até 2030</mark></div>
+    </div>
+
+    <div id="result">Base menor → menos recursos para o SUS</div>
+  </div>
+</div>
+<script>
+  // Tempos em segundos; window.DUR define a duração total (padrão 5 s).
+  const clamp = (x) => Math.min(1, Math.max(0, x));
+  const outCubic = (x) => 1 - Math.pow(1 - clamp(x), 3);
+  const inOut = (x) => { x = clamp(x); return x * x * (3 - 2 * x); };
+  const outBack = (x) => { x = clamp(x); const c = 1.6; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+  const seg = (t, a, b) => (t - a) / (b - a);
+  const $ = (id) => document.getElementById(id);
+
+  const FULL = 840;          // largura da barra (RCL completa)
+  const OIL = 0.18;          // fatia ilustrativa de petróleo e gás (sem escala real)
+
+  function appear(el, t, a, dur = 0.35, dy = 18) {
+    const p = outCubic(seg(t, a, a + dur));
+    el.style.opacity = p;
+    el.style.transform = `translateY(${(1 - p) * dy}px)`;
+  }
+
+  window.setTime = function (t) {
+    const D = window.DUR || 5;
+    const k = D / 5; // escala os tempos se a duração mudar
+
+    // cartão: entra com leve "pop", sai no final
+    const pin = outBack(seg(t, 0, 0.45));
+    const pout = inOut(seg(t, D - 0.35, D));
+    const card = $('card');
+    card.style.transform = `translateY(${(1 - pin) * 60 - pout * 40}px) scale(${(0.9 + 0.1 * pin) * (1 - 0.06 * pout)})`;
+    card.style.opacity = clamp(seg(t, 0, 0.18)) * (1 - pout);
+
+    // 1) constituição + barra da RCL com 15% para saúde
+    appear($('b1'), t, 0.25 * k);
+    $('m1').style.backgroundSize = `${inOut(seg(t, 0.55 * k, 0.95 * k)) * 100}% 100%`;
+
+    const pBar = inOut(seg(t, 0.5 * k, 1.1 * k));
+    // 2) petróleo e gás sai do cálculo: barra encolhe
+    const pCut = inOut(seg(t, 2.25 * k, 2.9 * k));
+    const total = FULL * (1 - OIL * pCut);
+    const shown = total * pBar;
+    $('bar').style.width = shown + 'px';
+    $('health').style.width = (0.15 * total * pBar) + 'px';
+    $('lblHealth').style.left = '0px';
+    $('lblHealth').style.opacity = outCubic(seg(t, 0.95 * k, 1.25 * k));
+    $('lblRcl').style.left = (Math.max(shown, 200) - 60) + 'px';
+    $('lblRcl').style.opacity = outCubic(seg(t, 1.0 * k, 1.3 * k)) * (1 - outCubic(seg(t, 1.55 * k, 1.75 * k)));
+
+    // fatia de petróleo e gás: destaca em vermelho e depois cai
+    const pOilIn = outCubic(seg(t, 1.6 * k, 1.95 * k));
+    const pDrop = inOut(seg(t, 2.25 * k, 2.9 * k));
+    const oil = $('oil');
+    oil.style.left = (FULL * (1 - OIL)) + 'px';
+    oil.style.width = (FULL * OIL) + 'px';
+    oil.style.opacity = pOilIn * (1 - pDrop);
+    oil.style.transform = `translate(${pDrop * 40}px, ${pDrop * 70}px) rotate(${pDrop * 10}deg)`;
+    const lo = $('lblOil');
+    lo.style.left = (FULL * (1 - OIL) - 40) + 'px';
+    lo.style.opacity = pOilIn * (1 - pDrop);
+
+    appear($('b2'), t, 1.75 * k);
+    $('m2').style.backgroundSize = `${inOut(seg(t, 2.1 * k, 2.55 * k)) * 100}% 100%`;
+
+    // 3) conclusão
+    const pr = outBack(seg(t, 3.05 * k, 3.45 * k));
+    const r = $('result');
+    r.style.opacity = clamp(seg(t, 3.05 * k, 3.2 * k));
+    r.style.transform = `scale(${0.85 + 0.15 * pr})`;
+    r.style.transformOrigin = '0 50%';
+  };
+  window.setTime(0);
+</script>
+</body>
+</html>
